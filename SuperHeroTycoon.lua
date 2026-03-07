@@ -322,8 +322,43 @@ end
 -- ═══════════════════════════════
 -- AUTO COLLECT
 -- ═══════════════════════════════
+local Players_AC = game:GetService("Players")
+
+getgenv().AutoCollect = false
+
+local function getTycoon()
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:FindFirstChild("Owner") then
+            local owner = v.Owner
+            if owner.Value == player then
+                return v
+            end
+        end
+    end
+end
+
+task.spawn(function()
+    while task.wait(0.5) do
+        if getgenv().AutoCollect then
+            local char = player.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local tycoon = getTycoon()
+            if tycoon and hrp then
+                for _, v in pairs(tycoon:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        local name = v.Name:lower()
+                        if name:find("collect") or name:find("cash") or name:find("money") then
+                            firetouchinterest(hrp, v, 0)
+                            firetouchinterest(hrp, v, 1)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
 local autoCollectActive = false
-local autoCollectLoop = nil
 
 local collectBtn, collectBar, collectSub, collectBadge, collectBadgeText, collectLabel =
     makeToggleCard(scroll, "💰", "Auto Collect", "Tap to enable", 1)
@@ -337,6 +372,7 @@ end)
 
 collectBtn.MouseButton1Click:Connect(function()
     autoCollectActive = not autoCollectActive
+    getgenv().AutoCollect = autoCollectActive
 
     if autoCollectActive then
         tween(collectBtn, 0.2, {BackgroundColor3 = Color3.fromRGB(12, 38, 18)})
@@ -347,42 +383,6 @@ collectBtn.MouseButton1Click:Connect(function()
         collectSub.Text = "Collecting..."
         collectSub.TextColor3 = THEME.GREEN
         stroke(collectBtn, THEME.GREEN, 1, 0.4)
-
-        autoCollectLoop = task.spawn(function()
-            while autoCollectActive do
-                local char = player.Character
-                local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
-                if hrp then
-                    -- Cari semua collector di workspace
-                    for _, obj in pairs(workspace:GetDescendants()) do
-                        if not autoCollectActive then break end
-                        if obj:IsA("BasePart") or obj:IsA("Part") then
-                            local name = obj.Name:lower()
-                            if string.find(name, "cash")
-                            or string.find(name, "collect")
-                            or string.find(name, "money")
-                            or string.find(name, "dropper")
-                            or string.find(name, "coin") then
-                                -- Teleport karakter ke collector
-                                local oldPos = hrp.CFrame
-                                hrp.CFrame = obj.CFrame + Vector3.new(0, 3, 0)
-                                task.wait(0.15)
-                                hrp.CFrame = oldPos
-                            end
-                        end
-                    end
-                end
-
-                collectSub.Text = "✓ Collected!"
-                collectSub.TextColor3 = THEME.GREEN
-                task.wait(0.5)
-                if autoCollectActive then
-                    collectSub.Text = "Collecting..."
-                end
-                task.wait(2)
-            end
-        end)
     else
         tween(collectBtn, 0.2, {BackgroundColor3 = Color3.fromRGB(20, 20, 28)})
         tween(collectBar, 0.2, {BackgroundColor3 = THEME.TEXT_MUTED})
@@ -392,11 +392,6 @@ collectBtn.MouseButton1Click:Connect(function()
         collectSub.Text = "Tap to enable"
         collectSub.TextColor3 = THEME.TEXT_MUTED
         stroke(collectBtn, THEME.BORDER, 1, 0.3)
-
-        if autoCollectLoop then
-            task.cancel(autoCollectLoop)
-            autoCollectLoop = nil
-        end
     end
 end)
 
