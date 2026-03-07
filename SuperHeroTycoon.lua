@@ -247,6 +247,160 @@ verLabel.TextXAlignment = Enum.TextXAlignment.Center
 verLabel.Parent = mainFrame
 
 -- ═══════════════════════════════
+-- TOGGLE CARD FACTORY
+-- ═══════════════════════════════
+local function makeToggleCard(parent, icon, label, sublabel, layoutOrder)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.5, -4, 0, 60)
+    btn.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+    btn.Text = ""
+    btn.BorderSizePixel = 0
+    btn.LayoutOrder = layoutOrder
+    btn.Parent = parent
+    corner(btn, 12)
+    stroke(btn, THEME.BORDER, 1, 0.3)
+
+    local bar = Instance.new("Frame")
+    bar.Size = UDim2.new(0, 3, 0, 32)
+    bar.Position = UDim2.new(0, 0, 0.5, -16)
+    bar.BackgroundColor3 = THEME.TEXT_MUTED
+    bar.BorderSizePixel = 0
+    bar.Parent = btn
+    corner(bar, 2)
+
+    local iconLbl = Instance.new("TextLabel")
+    iconLbl.Size = UDim2.new(0, 28, 0, 28)
+    iconLbl.Position = UDim2.new(0, 12, 0.5, -14)
+    iconLbl.BackgroundTransparency = 1
+    iconLbl.Text = icon
+    iconLbl.TextSize = 16
+    iconLbl.Font = Enum.Font.GothamBold
+    iconLbl.Parent = btn
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -90, 0, 16)
+    lbl.Position = UDim2.new(0, 46, 0, 10)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = label
+    lbl.TextColor3 = THEME.TEXT_PRIMARY
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 11
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = btn
+
+    local sub = Instance.new("TextLabel")
+    sub.Size = UDim2.new(1, -90, 0, 13)
+    sub.Position = UDim2.new(0, 46, 0, 28)
+    sub.BackgroundTransparency = 1
+    sub.Text = sublabel
+    sub.TextColor3 = THEME.TEXT_MUTED
+    sub.Font = Enum.Font.Gotham
+    sub.TextSize = 9
+    sub.TextXAlignment = Enum.TextXAlignment.Left
+    sub.Parent = btn
+
+    local badge = Instance.new("Frame")
+    badge.Size = UDim2.new(0, 38, 0, 20)
+    badge.Position = UDim2.new(1, -46, 0.5, -10)
+    badge.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    badge.BorderSizePixel = 0
+    badge.Parent = btn
+    corner(badge, 10)
+
+    local badgeText = Instance.new("TextLabel")
+    badgeText.Size = UDim2.new(1, 0, 1, 0)
+    badgeText.BackgroundTransparency = 1
+    badgeText.Text = "OFF"
+    badgeText.TextColor3 = THEME.RED
+    badgeText.Font = Enum.Font.GothamBold
+    badgeText.TextSize = 9
+    badgeText.Parent = badge
+
+    return btn, bar, sub, badge, badgeText, lbl
+end
+
+-- ═══════════════════════════════
+-- AUTO COLLECT
+-- ═══════════════════════════════
+local autoCollectActive = false
+local autoCollectLoop = nil
+
+local collectBtn, collectBar, collectSub, collectBadge, collectBadgeText, collectLabel =
+    makeToggleCard(scroll, "💰", "Auto Collect", "Tap to enable", 1)
+
+collectBtn.MouseEnter:Connect(function()
+    if not autoCollectActive then tween(collectBtn, 0.15, {BackgroundColor3 = THEME.BG_HOVER}) end
+end)
+collectBtn.MouseLeave:Connect(function()
+    if not autoCollectActive then tween(collectBtn, 0.15, {BackgroundColor3 = Color3.fromRGB(20, 20, 28)}) end
+end)
+
+collectBtn.MouseButton1Click:Connect(function()
+    autoCollectActive = not autoCollectActive
+
+    if autoCollectActive then
+        tween(collectBtn, 0.2, {BackgroundColor3 = Color3.fromRGB(12, 38, 18)})
+        tween(collectBar, 0.2, {BackgroundColor3 = THEME.GREEN})
+        tween(collectBadge, 0.2, {BackgroundColor3 = Color3.fromRGB(15, 50, 25)})
+        collectBadgeText.Text = "ON"
+        collectBadgeText.TextColor3 = THEME.GREEN
+        collectSub.Text = "Collecting..."
+        collectSub.TextColor3 = THEME.GREEN
+        stroke(collectBtn, THEME.GREEN, 1, 0.4)
+
+        autoCollectLoop = task.spawn(function()
+            while autoCollectActive do
+                local char = player.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+                if hrp then
+                    -- Cari semua collector di workspace
+                    for _, obj in pairs(workspace:GetDescendants()) do
+                        if not autoCollectActive then break end
+                        if obj:IsA("BasePart") or obj:IsA("Part") then
+                            local name = obj.Name:lower()
+                            if string.find(name, "cash")
+                            or string.find(name, "collect")
+                            or string.find(name, "money")
+                            or string.find(name, "dropper")
+                            or string.find(name, "coin") then
+                                -- Teleport karakter ke collector
+                                local oldPos = hrp.CFrame
+                                hrp.CFrame = obj.CFrame + Vector3.new(0, 3, 0)
+                                task.wait(0.15)
+                                hrp.CFrame = oldPos
+                            end
+                        end
+                    end
+                end
+
+                collectSub.Text = "✓ Collected!"
+                collectSub.TextColor3 = THEME.GREEN
+                task.wait(0.5)
+                if autoCollectActive then
+                    collectSub.Text = "Collecting..."
+                end
+                task.wait(2)
+            end
+        end)
+    else
+        tween(collectBtn, 0.2, {BackgroundColor3 = Color3.fromRGB(20, 20, 28)})
+        tween(collectBar, 0.2, {BackgroundColor3 = THEME.TEXT_MUTED})
+        tween(collectBadge, 0.2, {BackgroundColor3 = Color3.fromRGB(40, 40, 55)})
+        collectBadgeText.Text = "OFF"
+        collectBadgeText.TextColor3 = THEME.RED
+        collectSub.Text = "Tap to enable"
+        collectSub.TextColor3 = THEME.TEXT_MUTED
+        stroke(collectBtn, THEME.BORDER, 1, 0.3)
+
+        if autoCollectLoop then
+            task.cancel(autoCollectLoop)
+            autoCollectLoop = nil
+        end
+    end
+end)
+
+-- ═══════════════════════════════
 -- OPEN BUTTON
 -- ═══════════════════════════════
 local openBtn = Instance.new("TextButton")
